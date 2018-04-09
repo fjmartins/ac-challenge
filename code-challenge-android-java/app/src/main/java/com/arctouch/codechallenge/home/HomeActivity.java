@@ -1,27 +1,33 @@
 package com.arctouch.codechallenge.home;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ProgressBar;
 
 import com.arctouch.codechallenge.R;
-import com.arctouch.codechallenge.api.TmdbApi;
-import com.arctouch.codechallenge.base.BaseActivity;
-import com.arctouch.codechallenge.data.Cache;
-import com.arctouch.codechallenge.model.Genre;
+import com.arctouch.codechallenge.detail.DetailActivity;
 import com.arctouch.codechallenge.model.Movie;
 
 import java.util.ArrayList;
+import java.util.List;
 
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
+public class HomeActivity extends AppCompatActivity {
 
-public class HomeActivity extends BaseActivity {
-
+    private LinearLayoutManager layoutManager;
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
+    private long page = 1L;
+
+    private List<Movie> movies = new ArrayList<>();
+    private HomeAdapter adapter;
+
+    private boolean isLoading = true, isLastPage = false;
+    public static final String EXTRA_MOVIE = "EXTRA_MOVIE";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -30,22 +36,51 @@ public class HomeActivity extends BaseActivity {
 
         this.recyclerView = findViewById(R.id.recyclerView);
         this.progressBar = findViewById(R.id.progressBar);
+        this.layoutManager = new LinearLayoutManager(HomeActivity.this);
+        this.recyclerView.setLayoutManager(layoutManager);
+        this.adapter = new HomeAdapter(movies, new OnItemClickMovie() {
+            @Override
+            public void onItemClick(Movie movie) {
+                Intent intent = new Intent(HomeActivity.this, DetailActivity.class);
+                intent.putExtra(EXTRA_MOVIE, movie);
+                startActivity(intent);
+            }
 
-        api.upcomingMovies(TmdbApi.API_KEY, TmdbApi.DEFAULT_LANGUAGE, 1L, TmdbApi.DEFAULT_REGION)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(response -> {
-                    for (Movie movie : response.results) {
-                        movie.genres = new ArrayList<>();
-                        for (Genre genre : Cache.getGenres()) {
-                            if (movie.genreIds.contains(genre.id)) {
-                                movie.genres.add(genre);
-                            }
-                        }
+            @Override
+            public boolean onItemLongClick(View view, Movie movie) {
+                return false;
+            }
+        });
+
+        recyclerView.setAdapter(adapter);
+
+        HomeLogic.getGenres(new IResult<String>() {
+            @Override
+            public void onSuccess(String msg) {
+                HomeLogic.getMovies(page, new IResult<List<Movie>>() {
+                    @Override
+                    public void onSuccess(List<Movie> m) {
+                        List<Movie> movies = adapter.getMovies();
+                        movies.addAll(m);
+
+                        adapter.setMovies(movies);
+                        adapter.notifyDataSetChanged();
+
+                        progressBar.setVisibility(View.GONE);
+                        isLoading = false;
                     }
 
-                    recyclerView.setAdapter(new HomeAdapter(response.results));
-                    progressBar.setVisibility(View.GONE);
+                    @Override
+                    public void onError(String msg) {
+                        //Whoops
+                    }
                 });
+            }
+
+            @Override
+            public void onError(String msg) {
+
+            }
+        });
     }
 }
