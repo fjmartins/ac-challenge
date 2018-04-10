@@ -75,7 +75,7 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return movies.size();
+        return movies == null ? 0 : movies.size();
     }
 
     @Override

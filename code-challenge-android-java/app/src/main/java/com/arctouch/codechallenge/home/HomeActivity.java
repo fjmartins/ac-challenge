@@ -16,28 +16,31 @@ import com.arctouch.codechallenge.model.Movie;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
 public class HomeActivity extends AppCompatActivity {
 
-    private LinearLayoutManager layoutManager;
-    private RecyclerView recyclerView;
-    private ProgressBar progressBar;
-    private long page = 1L;
+    public static final String EXTRA_MOVIE = "EXTRA_MOVIE";
+    public static final String MOVIE_LIST_STATE = "MOVIE_LIST_STATE";
 
-    private List<Movie> movies = new ArrayList<>();
+    @BindView(R.id.recyclerView)
+    RecyclerView recyclerView;
+    @BindView(R.id.progressBar)
+    ProgressBar progressBar;
+
+    private List<Movie> movies;
     private HomeAdapter adapter;
 
+    private long page = 1L;
     private boolean isLoading = true, isLastPage = false;
-    public static final String EXTRA_MOVIE = "EXTRA_MOVIE";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home_activity);
+        ButterKnife.bind(this);
 
-        this.recyclerView = findViewById(R.id.recyclerView);
-        this.progressBar = findViewById(R.id.progressBar);
-        this.layoutManager = new LinearLayoutManager(HomeActivity.this);
-        this.recyclerView.setLayoutManager(layoutManager);
         this.adapter = new HomeAdapter(movies, new OnItemClickMovie() {
             @Override
             public void onItemClick(Movie movie) {
@@ -51,36 +54,50 @@ public class HomeActivity extends AppCompatActivity {
                 return false;
             }
         });
-
         recyclerView.setAdapter(adapter);
 
-        HomeLogic.getGenres(new IResult<String>() {
-            @Override
-            public void onSuccess(String msg) {
-                HomeLogic.getMovies(page, new IResult<List<Movie>>() {
-                    @Override
-                    public void onSuccess(List<Movie> m) {
-                        List<Movie> movies = adapter.getMovies();
-                        movies.addAll(m);
+        if (savedInstanceState != null) {
+            movies = (ArrayList) savedInstanceState.getSerializable(MOVIE_LIST_STATE);
+            doneLoading();
+        } else {
+            HomeLogic.getGenres(new IResult<String>() {
+                @Override
+                public void onSuccess(String msg) {
+                    HomeLogic.getMovies(page, new IResult<List<Movie>>() {
+                        @Override
+                        public void onSuccess(List<Movie> m) {
+                            movies = m;
+                            doneLoading();
+                        }
 
-                        adapter.setMovies(movies);
-                        adapter.notifyDataSetChanged();
+                        @Override
+                        public void onError(String msg) {
+                            //Whoops
+                        }
+                    });
+                }
 
-                        progressBar.setVisibility(View.GONE);
-                        isLoading = false;
-                    }
+                @Override
+                public void onError(String msg) {
+                    //Whoops
+                }
+            });
+        }
+    }
 
-                    @Override
-                    public void onError(String msg) {
-                        //Whoops
-                    }
-                });
-            }
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        // Save our own state now
+        outState.putSerializable(MOVIE_LIST_STATE, (ArrayList) movies);
+        // Make sure to call the super method so that the states of our views are saved
+        super.onSaveInstanceState(outState);
+    }
 
-            @Override
-            public void onError(String msg) {
+    private void doneLoading() {
+        adapter.setMovies(movies);
+        adapter.notifyDataSetChanged();
 
-            }
-        });
+        progressBar.setVisibility(View.GONE);
+        isLoading = false;
     }
 }
