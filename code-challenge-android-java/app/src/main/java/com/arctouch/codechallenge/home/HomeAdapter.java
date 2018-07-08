@@ -19,10 +19,12 @@ import java.util.List;
 
 public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
 
+    private OnItemClickMovie listener;
     private List<Movie> movies;
 
-    public HomeAdapter(List<Movie> movies) {
+    public HomeAdapter(List<Movie> movies, OnItemClickMovie listener) {
         this.movies = movies;
+        this.listener = listener;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -42,7 +44,14 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
             posterImageView = itemView.findViewById(R.id.posterImageView);
         }
 
-        public void bind(Movie movie) {
+        public void bind(Movie movie, OnItemClickMovie listener) {
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    listener.onItemClick(movie);
+                }
+            });
+
             titleTextView.setText(movie.title);
             genresTextView.setText(TextUtils.join(", ", movie.genres));
             releaseDateTextView.setText(movie.releaseDate);
@@ -66,11 +75,19 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return movies.size();
+        return movies == null ? 0 : movies.size();
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(movies.get(position));
+        holder.bind(movies.get(position), listener);
+    }
+
+    public List<Movie> getMovies() {
+        return movies;
+    }
+
+    public void setMovies(List<Movie> movies) {
+        this.movies = movies;
     }
 }

@@ -1,10 +1,13 @@
 package com.arctouch.codechallenge.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.squareup.moshi.Json;
 
 import java.util.List;
 
-public class Movie {
+public class Movie implements Parcelable {
     public int id;
     public String title;
     public String overview;
@@ -17,6 +20,28 @@ public class Movie {
     public String backdropPath;
     @Json(name = "release_date")
     public String releaseDate;
+
+    protected Movie(Parcel in) {
+        id = in.readInt();
+        title = in.readString();
+        overview = in.readString();
+        genres = in.createTypedArrayList(Genre.CREATOR);
+        posterPath = in.readString();
+        backdropPath = in.readString();
+        releaseDate = in.readString();
+    }
+
+    public static final Creator<Movie> CREATOR = new Creator<Movie>() {
+        @Override
+        public Movie createFromParcel(Parcel in) {
+            return new Movie(in);
+        }
+
+        @Override
+        public Movie[] newArray(int size) {
+            return new Movie[size];
+        }
+    };
 
     @Override
     public boolean equals(Object o) {
@@ -64,5 +89,21 @@ public class Movie {
                 ", backdropPath='" + backdropPath + '\'' +
                 ", releaseDate='" + releaseDate + '\'' +
                 '}';
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeInt(id);
+        parcel.writeString(title);
+        parcel.writeString(overview);
+        parcel.writeTypedList(genres);
+        parcel.writeString(posterPath);
+        parcel.writeString(backdropPath);
+        parcel.writeString(releaseDate);
     }
 }
